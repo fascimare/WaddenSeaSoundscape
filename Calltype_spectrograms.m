@@ -8,11 +8,13 @@ wavpath = 'F:\WaddenSea fish sounds\Lauwersoog recordings\May2\LAUW_OFFREEF_E_60
 %Decide which logged call type you want to plot
 calltype = 'striped fish grunt';
 
+%Decide the name and path of the audio cilp that you save
+wavname = '';
 %Pick one of the calls in the subset
 n = 2;
 
 %Spectrogram settings
-timebef = 1; %time before call (s)
+timebef = 2.5; %time before call (s)
 dur = 5; %spectrogram length (s)
 filt_low = 50; %low end of band pass filter (Hz)
 filt_high = 1000; %high end of band pass filter (Hz)
@@ -20,7 +22,7 @@ nfft = 2400; %FFT size
 overlap = 0.9; %window overlap (0-1)
 freq_low = 0; %Lower frequency limit on spectrogram (kHz);
 freq_high = 1; %Upper frequency limit on spectrogram (kHz);
-cal = []; %optional: calibration value in dB (see SoundTrap website for calibration value of hydrophone)
+cal = 177.1; %optional: calibration value in dB (see SoundTrap website for calibration value of hydrophone)
 %% Read in log file
 [infile,inpath]=uigetfile('*.xls','Select a xls file with manual picks');
 if isequal(infile,0)
@@ -71,13 +73,16 @@ noverlap = round(nfft*overlap);
 %Make figure
 figure;
 spectrogram(fishsoundcal_filt,window,noverlap,nfft,fs,'yaxis')
-%clim([50 120]);
+clim([60 100]);
 ylim([freq_low freq_high])
 ylabel('Frequency (kHz)')
 fontsize(gca,16, "points")
 title(calltype,'FontSize',24)
 
-
+%To save audio file
+[b,a] = ellip(4,0.1,40,[filt_low,filt_high]*2/fs);
+fishsound_filt = filter(b,a,fishsound);
+audiowrite(wavname,fishsound_filt,fs)
 
 %n = 41;
 %callname = logs.Comments(n);
