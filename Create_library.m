@@ -9,7 +9,7 @@ wavpath = 'F:\WaddenSea fish sounds\Lauwersoog recordings\May1\';
 outpath = 'F:\Sound library\';
 
 %Decide which logged call type you want to make a library for
-calltype = 'drum vibrations';
+calltype = 'woodpecker sound';
 mkdir(outpath,calltype)
 
 %Spectrogram settings
