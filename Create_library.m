@@ -9,24 +9,25 @@ wavpath = 'F:\WaddenSea fish sounds\';
 outpath = 'F:\Sound library\';
 
 %Decide which logged call type you want to make a library for
-calltype = 'Gr';
+calltype = 'Sn';
 mkdir(outpath,calltype)
 
 %Spectrogram settings
 timebef = 2; %time before call (s)
 dur = 5; %spectrogram length (s)
 filt_low = 50; %low end of band pass filter (Hz)
-filt_high = 1000; %high end of band pass filter (Hz)
-nfft = 2400; %FFT size
+filt_high = 10000; %high end of band pass filter (Hz)
+nfft = 3500; %FFT size
 overlap = 0.9; %window overlap (0-1)
 freq_low = 0; %Lower frequency limit on spectrogram (kHz);
-freq_high = 1; %Upper frequency limit on spectrogram (kHz);
-climval = [40 100]; 
+freq_high = 10; %Upper frequency limit on spectrogram (kHz);
+climval = [50 90]; 
 %cal = 177.1; %optional: calibration value in dB (see SoundTrap website for calibration value of hydrophone)
 calfile= readtable('G:\My Drive\Sound library\Sound types Wadden Sea\Hydrophone calibration.xlsx'); 
 %gain = "SensitivityHighGain";
 calgain = calfile(:,1:2); %Adjust column numbers based on which gain you used.
 %% Read in log file
+analysismethod = 'Triton';
 [infile,inpath]=uigetfile('*.xlsx','Select a file with manual picks');
 if isequal(infile,0)
     disp('Cancelled button pushed');
@@ -36,6 +37,7 @@ logs = readtable([inpath,infile]);
 %
 %fs = 24000;
 %% Read in Raven detection files
+analysismethod = 'Raven';
 [infile,inpath]=uigetfile('*.txt','Select a Raven file with manual picks');
 if isequal(infile,0)
     disp('Cancelled button pushed');
@@ -50,7 +52,8 @@ Rlogs.Comments = Rlogs.SoundCode; %sound_code for other file, consistency needed
 depinfo = split(infile,'.');
 Rlogs.Location = repmat(string(depinfo{2}),length(Rlogs.StartTime),1);
 Rlogs.Deployment = repmat(string(depinfo{1}),length(Rlogs.StartTime),1);
-logs = Rlogs;
+Rlogssub = Rlogs(strcmp(Rlogs.View,'Spectrogram 1'),:);
+logs = Rlogssub;
 %%  Find appropriate call type and make figure
 Index = find(contains(logs.Comments,calltype));
 calltypelogs = logs(Index,:);
@@ -82,10 +85,16 @@ for n = 1:length(startnum)
     fileinfo = audioinfo(wavpathfile);
     fs = fileinfo.SampleRate;
 
-    soundDate = dateregexp(soundfile,RegDate);
-    startsample = (startnum(n)-soundDate)*3600*24*fs;
-    startS = round(startsample - timebef*fs);
-    endS = round(startS+dur*fs);
+    if strcmp(analysismethod, 'Triton')
+        soundDate = dateregexp(soundfile,RegDate);
+        startsample = (startnum(n)-soundDate)*3600*24*fs;
+        startS = round(startsample - timebef*fs);
+        endS = round(startS+dur*fs);
+    elseif strcmp(analysismethod,'Raven')
+        startS = round(calltypelogs.BegFileSamp_samples_(n)-timebef*fs);
+        endS = round(startS+dur*fs);
+    end
+
     if endS>fileinfo.TotalSamples
         timeleft = endS-fileinfo.TotalSamples;
         endS = TotalSamples;
@@ -135,7 +144,7 @@ for n = 1:length(startnum)
     close(h)
     toc
 end
-close all
+
 
 %n = 41;
 %callname = logs.Comments(n);
