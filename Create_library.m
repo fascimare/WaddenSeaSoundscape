@@ -3,13 +3,13 @@
 % ----------Start with input settings:------------
 
 % Specify folder with wav files and sample rate
-wavpath = 'F:\WaddenSea fish sounds\Lauwersoog recordings\May1\'; 
+wavpath = 'F:\WaddenSea fish sounds\'; 
 
 %Output path
 outpath = 'F:\Sound library\';
 
 %Decide which logged call type you want to make a library for
-calltype = 'woodpecker sound';
+calltype = 'Gr';
 mkdir(outpath,calltype)
 
 %Spectrogram settings
@@ -21,7 +21,8 @@ nfft = 2400; %FFT size
 overlap = 0.9; %window overlap (0-1)
 freq_low = 0; %Lower frequency limit on spectrogram (kHz);
 freq_high = 1; %Upper frequency limit on spectrogram (kHz);
-cal = 177.1; %optional: calibration value in dB (see SoundTrap website for calibration value of hydrophone)
+climval = [40 100]; 
+%cal = 177.1; %optional: calibration value in dB (see SoundTrap website for calibration value of hydrophone)
 calfile= readtable('G:\My Drive\Sound library\Sound types Wadden Sea\Hydrophone calibration.xlsx'); 
 %gain = "SensitivityHighGain";
 calgain = calfile(:,1:2); %Adjust column numbers based on which gain you used.
@@ -34,6 +35,22 @@ end
 logs = readtable([inpath,infile]);
 %
 %fs = 24000;
+%% Read in Raven detection files
+[infile,inpath]=uigetfile('*.txt','Select a Raven file with manual picks');
+if isequal(infile,0)
+    disp('Cancelled button pushed');
+    return
+end
+Rlogs = readtable([inpath,infile]);
+Rlogs.StartTime = datetime(Rlogs.BeginDateTime,"InputFormat","uuuu/MM/dd HH:mm:ss.SSS");
+Rlogs.dur = Rlogs.EndTime_s_-Rlogs.BeginTime_s_;
+numend = datenum(Rlogs.StartTime) + Rlogs.dur/3600/24;
+Rlogs.EndTime = datetime(numend,"ConvertFrom","datenum");
+Rlogs.Comments = Rlogs.SoundCode; %sound_code for other file, consistency needed.
+depinfo = split(infile,'.');
+Rlogs.Location = repmat(string(depinfo{2}),length(Rlogs.StartTime),1);
+Rlogs.Deployment = repmat(string(depinfo{1}),length(Rlogs.StartTime),1);
+logs = Rlogs;
 %%  Find appropriate call type and make figure
 Index = find(contains(logs.Comments,calltype));
 calltypelogs = logs(Index,:);
@@ -101,7 +118,7 @@ for n = 1:length(startnum)
     %Make figure
     h=figure;
     spectrogram(fishsoundcal_filt,window,noverlap,nfft,fs,'yaxis')
-    clim([60 90]);
+    clim(climval);
     ylim([freq_low freq_high])
     ylabel('Frequency (kHz)')
     fontsize(gca,16, "points")
