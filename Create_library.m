@@ -3,30 +3,30 @@
 % ----------Start with input settings:------------
 
 % Specify folder with wav files and sample rate
-wavpath = 'F:\WaddenSea fish sounds\'; 
+wavpath = 'F:\North Sea fish sounds_Ilse\'; 
 
 %Output path
 outpath = 'F:\Sound library\';
 
 %Decide which logged call type you want to make a library for
-calltype = 'Sn';
+calltype = 'grey gurnard';
 mkdir(outpath,calltype)
 
 %Spectrogram settings
 timebef = 2; %time before call (s)
 dur = 5; %spectrogram length (s)
 filt_low = 50; %low end of band pass filter (Hz)
-filt_high = 10000; %high end of band pass filter (Hz)
-nfft = 3500; %FFT size
+filt_high = 20000; %high end of band pass filter (Hz)
+nfft = 50000; %FFT size
 overlap = 0.9; %window overlap (0-1)
 freq_low = 0; %Lower frequency limit on spectrogram (kHz);
-freq_high = 10; %Upper frequency limit on spectrogram (kHz);
-climval = [50 90]; 
+freq_high = 2; %Upper frequency limit on spectrogram (kHz);
+climval = [50 90]; %dB values for colorbar
 %cal = 177.1; %optional: calibration value in dB (see SoundTrap website for calibration value of hydrophone)
 calfile= readtable('G:\My Drive\Sound library\Sound types Wadden Sea\Hydrophone calibration.xlsx'); 
 %gain = "SensitivityHighGain";
 calgain = calfile(:,1:2); %Adjust column numbers based on which gain you used.
-%% Read in log file
+%% Read in Triton log file
 analysismethod = 'Triton';
 [infile,inpath]=uigetfile('*.xlsx','Select a file with manual picks');
 if isequal(infile,0)
@@ -97,13 +97,13 @@ for n = 1:length(startnum)
 
     if endS>fileinfo.TotalSamples
         timeleft = endS-fileinfo.TotalSamples;
-        endS = TotalSamples;
+        endS = fileinfo.TotalSamples;
     end
     fishsound = audioread(wavpathfile,[startS,endS]);
-    if exist("timeleft")
+    if exist("timeleft","var")
         %idx = find(strcmp({wavfiles.name},soundfile)==1);
         nextfile = wavfiles(wavidx+1).name;
-        nextfilepath = [wavpath,'\',nextfile];
+        nextfilepath = [fullwavpath,'\',nextfile];
         remainsound = audioread(nextfilepath,[1,timeleft]);
         fishsound = vertcat(fishsound,remainsound);
         clear timeleft
