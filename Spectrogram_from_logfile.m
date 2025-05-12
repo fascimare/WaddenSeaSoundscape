@@ -1,31 +1,30 @@
-%% Script to edit fish sound categories
-
-% ----------Start with input settings:------------
+%% Script to create nice spectrogram figures
 
 % Specify folder with wav files and sample rate
-wavpath = 'D:\WaddenSea fish sounds\Lauwersoog recordings\LAUW_06\'; 
+wavpath = 'F:\WaddenSea fish sounds\Lauwersoog recordings\'; 
 
 %Output path
-outpath = 'G:\Shared drives\Wadden Sea Sound Library\Sound library\';
+outpath = 'C:\Users\P310512\Documents\Groningen\Sound library\Fish sounds 2sec clips\';
 
-%Decide which logged call type you want to make a library for
-calltype = 'org_sound';
-mkdir(outpath,calltype)
+%Call type (specify which call type name should be given as title of the
+%spectrogram
+calltype = 'Burst';
 
 %Spectrogram settings
 timebef = 0.5; %time before call (s)
-dur = 5; %spectrogram length (s)
+dur = 2; %spectrogram length (s)
 filt_low = 50; %low end of band pass filter (Hz)
 filt_high = 2000; %high end of band pass filter (Hz)
-nfft = 3500; %FFT size
+nfft = 5000; %FFT size
 overlap = 0.9; %window overlap (0-1)
 freq_low = 0; %Lower frequency limit on spectrogram (kHz);
 freq_high = 2; %Upper frequency limit on spectrogram (kHz);
 climval = [50 90]; %dB values for colorbar
-%cal = 177.1; %optional: calibration value in dB (see SoundTrap website for calibration value of hydrophone)
+
 calfile= readtable('G:\My Drive\Sound library\Sound types Wadden Sea\Hydrophone calibration.xlsx'); 
-%gain = "SensitivityHighGain";
+
 calgain = calfile(:,1:2); %Adjust column numbers based on which gain you used.
+
 %% Read in Triton log file
 analysismethod = 'Triton';
 [infile,inpath]=uigetfile('*.xlsx','Select a file with manual picks');
@@ -34,57 +33,26 @@ if isequal(infile,0)
     return
 end
 logs = readtable([inpath,infile]);
-%
-%fs = 24000;
-%% Read in Raven detection files
-analysismethod = 'Raven';
-[infile,inpath]=uigetfile('*.txt','Select a Raven file with manual picks');
-if isequal(infile,0)
-    disp('Cancelled button pushed');
-    return
-end
-Rlogs = readtable([inpath,infile]);
-Rlogs.StartTime = datetime(Rlogs.BeginDateTime,"InputFormat","uuuu/MM/dd HH:mm:ss.SSS");
-Rlogs.dur = Rlogs.EndTime_s_-Rlogs.BeginTime_s_;
-numend = datenum(Rlogs.StartTime) + Rlogs.dur/3600/24;
-Rlogs.EndTime = datetime(numend,"ConvertFrom","datenum");
-Rlogs.Comments = Rlogs.SoundCode; %sound_code for other file, consistency needed.
-depinfo = split(infile,'.');
-Rlogs.Location = repmat(string(depinfo{2}),length(Rlogs.StartTime),1);
-Rlogs.Deployment = repmat(string(depinfo{1}),length(Rlogs.StartTime),1);
-Rlogssub = Rlogs(strcmp(Rlogs.View,'Spectrogram 1'),:);
-logs = Rlogssub;
+
+%Decide which annotation you want to make a spectrogram of
+rownr = 5; % put in row number of specific log
+
 %%  Find appropriate call type and make figure
-Index = find(contains(logs.Comments,calltype));
-calltypelogs = logs(Index,:);
 
 %Convert start times so they can be used by Matlab
-starttime = datetime(calltypelogs.StartTime);
+starttime = datetime(logs(rownr).StartTime);
 startnum = datenum(starttime);
 
-for n = 1:length(startnum)
-    tic
-    %Find appropriate wav file and calculate start time in samples
-    if strcmp(analysismethod, 'Raven')
-        fullwavpath = wavpath;
-    else
-    fullwavpath = [wavpath,calltypelogs.Location{n},'_',calltypelogs.Deployment{n}];
-    end
-    %Make a list of the wav files in the folder
-    wavfiles = dir(fullfile(fullwavpath,'*.wav'));
-    filelistwav = struct2cell(wavfiles);
-    wavinfo = audioinfo(fullfile(fullwavpath,wavfiles(1).name));
-    RegDate = '(?<yr>\d\d)(?<mon>\d\d)(?<day>\d\d)(?<hr>\d\d)(?<min>\d\d)(?<s>\d\d)';
-    fileDates = dateregexp(filelistwav(1,:),RegDate);
-    wavidx = find(fileDates<= startnum(n) & (fileDates+ datenum([0 0 0 0 0 wavinfo.Duration])) > startnum(n));
+%Make a list of the wav files in the folder
+wavfiles = dir(fullfile(wavpath,'*.wav'));
+filelistwav = struct2cell(wavfiles);
+wavinfo = audioinfo(fullfile(wavpath,wavfiles(1).name));
+RegDate = '(?<yr>\d\d)(?<mon>\d\d)(?<day>\d\d)(?<hr>\d\d)(?<min>\d\d)(?<s>\d\d)';
+fileDates = dateregexp(filelistwav(1,:),RegDate);
+wavidx = find(fileDates<= startnum(n) & (fileDates+ datenum([0 0 0 0 0 wavinfo.Duration])) > startnum(n));
 
-% soundpath = calltypelogs.InputFile(n);
-% soundpathsections = strsplit(soundpath{:},'\');
-% soundfile = soundpathsections{end};
-% wavpathfile = [wavpath,'\',soundfile];
-
-    soundfile = wavfiles(wavidx).name;
-    wavpathfile = [fullwavpath,'\',wavfiles(wavidx).name];
+soundfile = wavfiles(wavidx).name;
+wavpathfile = [wavpath,'\',wavfiles(wavidx).name];
     fileinfo = audioinfo(wavpathfile);
     fs = fileinfo.SampleRate;
 
@@ -106,7 +74,7 @@ for n = 1:length(startnum)
     if exist("timeleft","var")
         %idx = find(strcmp({wavfiles.name},soundfile)==1);
         nextfile = wavfiles(wavidx+1).name;
-        nextfilepath = [fullwavpath,'\',nextfile];
+        nextfilepath = [wavpath,'\',nextfile];
         remainsound = audioread(nextfilepath,[1,timeleft]);
         fishsound = vertcat(fishsound,remainsound);
         clear timeleft
@@ -142,7 +110,7 @@ for n = 1:length(startnum)
     if strcmp(analysismethod, 'Raven')
         filename = [outpath,'/',calltype,'/',calltype,'_',calltypelogs.Location{n},'_',calltypelogs.Deployment{n},'_',timestr];
     else
-    filename = [outpath,calltype,'\',calltype,'_',calltypelogs.Location{n},'_',calltypelogs.Deployment{n},'_',timestr];
+    filename = [outpath,calltype,'\',calltype,'_',hyd,'_',timestr]; %Mac computers might need forward slash here.
     end
     figname = [filename,'.png'];
     wavname = [filename,'.wav'];
@@ -151,8 +119,3 @@ for n = 1:length(startnum)
     close(h)
     toc
 end
-
-
-%n = 41;
-%callname = logs.Comments(n);
-%disp(callname{:});

@@ -1,0 +1,78 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+file<-list.files(path="C:/Users/P310512/Documents/Groningen/Ship detector output/")
+filetype<-".csv"
+file.list<-grepl(filetype,file,fixed=TRUE)
+file.WC<-file[file.list]
+setwd("C:/Users/P310512/Documents/Groningen/Ship detector output/")
+
+RES<-NULL
+for(n in 1:length(file.WC)){
+  setwd("C:/Users/P310512/Documents/Groningen/Ship detector output/")
+  dat<-read.csv(file.WC[n])
+  titel<-file.WC[n]
+  tel<-length(dat[,1])
+  dat$file<-rep(titel,tel)
+  loc<-strsplit(titel,"_","]",2)
+  dat$Block<-rep(loc[[1]][5],tel)
+  dat$Reef<-rep(loc[[1]][4],tel)
+    
+  RES<-rbind(RES,dat)
+}
+```
+
+```{r}
+temp<-RES
+temp$StartDate <- sapply(strsplit(as.character(temp$ISOStartTime), "T"), "[", 1)
+temp$StartTime <- sapply(strsplit(as.character(temp$ISOStartTime), "T"), "[", 2)
+temp$StartTime <- sapply(strsplit(as.character(temp$StartTime), "Z"), "[", 1)
+temp2<-unite(temp,"startdatetime",c("StartDate","StartTime"),sep=" ")
+temp2$Start<-as.POSIXct(temp2$startdatetime,format="%Y-%m-%d %H:%M:%S")
+
+temp$EndDate <- sapply(strsplit(as.character(temp$ISOEndTime), "T"), "[", 1)
+temp$EndTime <- sapply(strsplit(as.character(temp$ISOEndTime), "T"), "[", 2)
+temp$EndTime <- sapply(strsplit(as.character(temp$EndTime), "Z"), "[", 1)
+temp3<-unite(temp,"enddatetime",c("EndDate","EndTime"),sep=" ")
+temp3$Eind<-as.POSIXct(temp3$enddatetime,format="%Y-%m-%d %H:%M:%S")
+temp3<-cbind(temp3,temp2$Start)
+names(temp3)<-c("ISOStartTime","ISOEndTime","StartTime","enddatetime","Labels","file","Block","Reef","StartDate","Eind","Start")
+
+temp3$StartDate<-format(temp3$Start,format="%Y-%m-%d")
+temp3$StartDate<-as.POSIXct(temp3$StartDate,format="%Y-%m-%d")
+temp3$StartTime<-format(temp3$Start,format="%H:%M:%S")
+temp3$StartTime<-as.POSIXct(temp3$StartTime,format="%H:%M:%S")
+temp3$EndDate<-format(temp3$Eind,format="%Y-%m-%d")
+temp3$EndDate<-as.POSIXct(temp3$EndDate,format="%Y-%m-%d")
+temp3$EndTime<-format(temp3$Eind,format="%H:%M:%S")
+temp3$EndTime<-as.POSIXct(temp3$EndTime,format="%H:%M:%S")
+RES<-temp3
+
+ships<-subset(RES,Labels=="ship")
+```
+
+
+#Match start times
+```{r}
+require(ggplot2)
+
+ships$y<-1
+ships$y[ships$Block=="E" & ships$Reef=="ONREEF"] <- 0.5
+ships$y[ships$Block=="W" & ships$Reef=="ONREEF"] <- 1.5
+ships$y[ships$Block=="E" & ships$Reef=="OFFREEF"] <- 0.25
+
+ggplot(data=ships,aes(x=Start,y=y))+geom_point(aes(colour=Block,shape=Reef))
+
+```
+```{r}
+LAUW1_OFF<-subset(ships,Block=="W" & Reef == "OFFREEF")
+LAUW2_OFF<-subset(ships,Block=="E" & Reef == "OFFREEF")
+LAUW1_ON<-subset(ships,Block=="W" & Reef == "ONREEF")
+LAUW2_ON<-subset(ships,Block=="E" & Reef == "ONREEF")
+
+head(LAUW1_OFF$Start)
+head(LAUW1_ON$Start)
+```

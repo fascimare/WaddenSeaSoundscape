@@ -1,0 +1,46 @@
+---
+title: "summarizing over time"
+author: "Annebelle"
+date: "2024-06-27"
+output: html_document
+---
+
+Consolidate dataframe into 1 minute chunks
+```{r}
+dat<-subset(RES,Site=="FK03") #Input dataframe
+result <- data.frame()
+
+## Convert times into POSIXct values (not necessary for second counts)
+range.time <- range(dat$Start, na.rm = T)
+
+## Times.start should be a vector holding the starting times for each bin to count within
+bins.size <- 60*1  # 1 min bin
+times.start <- seq(from = range.time[1],
+                   to = range.time[2], by = bins.size) #Needed because of the use of actual datetime values. In your case, subsitute for bin sizes in seconds (i.e. 1:60, 61:120, etc)
+
+i = 1
+for(i in 1:length(times.start)){
+  
+  ## Define start and end times for this bin
+  time.start <- times.start[i]  
+  time.end <- time.start + bins.size
+  
+  ## Show message
+  message("bin: ", i, ", time: ", time.start)
+  
+ 
+  ## Subset data.frame: Select only rows within this time bin
+  sub <- subset(dat,
+                Start >= time.start &
+                  Start < time.end)
+  
+  ## Calculate count results #This is where you have to adjust according to your wishes (so sum for total nr of calls, etc)
+  temp.df <- data.frame(Time = time.start,
+                        peakF = mean(sub$peakF),SPL = mean(sub$SPLcal),Site=sub$Site[1],Deployment=sub$Deployment[1])
+  ## Append results to output data.frame
+  result <- rbind(result, temp.df)
+}
+
+RESFK03<-na.omit(result) #Put output into new dataframe
+
+```

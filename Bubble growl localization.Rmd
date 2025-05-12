@@ -1,0 +1,60 @@
+---
+title: "Bubble growl localization"
+author: "Annebelle"
+date: "2024-02-22"
+output: html_document
+---
+
+This script aims to localize bubble growls based on overlapping detection times from multiple hydrophones.
+
+```{r}
+file<-list.files(path="G:/My Drive/Wadden fish sounds/Data analysis/Final logs/")
+filetype<-"inputmod2"
+file.list<-grepl(filetype,file,fixed=TRUE)
+file.WC<-file[file.list]
+setwd("G:/My Drive/Wadden fish sounds/Data analysis/Final logs/")
+
+RES<-NULL
+for(n in 1:length(file.WC)){
+  dat<-readxl::read_excel(file.WC[n])
+  RES<-rbind(RES,dat)
+}
+```
+
+
+```{r}
+RES$Start<-as.POSIXct(RES$StartTime,tz="UTC")
+RES$End<-as.POSIXct(RES$EndTime,tz="UTC")
+
+require(ggplot2)
+ggplot(data=subset(RES,Deployment=="05"),aes(x=Start,y=Location))+geom_point()
+```
+
+#Separating locations so we can match times
+```{r}
+lauw1off<-subset(RES,Location=="LAUW1_OFF")
+lauw1on<-subset(RES,Location=="LAUW1_ON")
+lauw2on<-subset(RES,Location=="LAUW2_ON")
+lauw2off<-subset(RES,Location=="LAUW2_OFF")
+
+require(lubridate)
+lauw1off$Startround<-round_date(lauw1off$Start,unit="1 second") 
+lauw1on$Startround<-round_date(lauw1on$Start,unit="1 second") 
+lauw2off$Startround<-round_date(lauw2off$Start,unit="1 second") 
+lauw2on$Startround<-round_date(lauw2on$Start,unit="1 second") 
+
+b<-match(lauw1off$Startround,lauw1on$Startround)
+c<-match(lauw1on$Startround,lauw1off$Startround)
+d<-match(lauw2off$Startround,lauw2on$Startround)
+f<-match(lauw2on$Startround,lauw2off$Startround)
+
+lauw1_off_match<-lauw1off[na.omit(c),]
+lauw1_on_match<-lauw1on[na.omit(b),]
+lauw2_off_match<-lauw2off[na.omit(f),]
+lauw2_on_match<-lauw2on[na.omit(d),]
+
+ggplot(data=subset(lauw1off,Deployment=="05"),aes(x=Start,y=Location))+geom_point(colour="darkgrey")+geom_point(data=lauw1_on_match,colour="red")+geom_point(data=lauw1_off_match)
++geom_point(data=lauw2_off_match,colour="blue")+geom_point(data=lauw2_on_match,colour="darkgreen")
+
+ggplot(data=subset(RES,Comments=="very loud period" & Deployment=="06"),aes(x=Start,y=Location))+geom_point()
+```

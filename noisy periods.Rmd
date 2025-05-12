@@ -1,0 +1,43 @@
+---
+title: "Noisy periods"
+author: "Annebelle"
+date: "2025-05-07"
+output: html_document
+---
+
+```{r}
+file<-list.files(path="G:/My Drive/Wadden fish sounds/Data analysis/Final logs")
+filetype<-"inputmod.xlsx"
+file.list<-grepl(filetype,file,fixed=TRUE)
+file.WC<-file[file.list]
+
+RES<-NULL
+setwd("G:/My Drive/Wadden fish sounds/Data analysis/Final logs")
+for(n in 3:length(file.WC)){
+  dat<-as.data.frame(readxl::read_excel(file.WC[n]))
+  RES<-rbind(RES,dat)
+}
+
+summary(RES)
+```
+
+For LAUW_05, the noisy periods were also recorded separately, and that data was checked. So, I will replace the noisy periods during LAUW_05 in the original dataset with that from the separate excelsheet.
+
+```{r}
+very.loud <- read_excel("G:/Shared drives/WaddenSea fish sounds/final log data janneke/feb/very_loud_period_feb.xls")
+very.loud$location <- str_replace_all(very.loud$location, "W_off", "LAUW1_OFF")
+very.loud$location <- str_replace_all(very.loud$location, "W_on", "LAUW1_ON")
+very.loud$location <- str_replace_all(very.loud$location, "E_off", "LAUW2_OFF")
+very.loud$location <- str_replace_all(very.loud$location, "E_on", "LAUW2_ON")
+very.loud$Deployment <- "05"
+very.loud$new_inputfile<-very.loud$`Input file`
+names(very.loud)<-names(RES)
+```
+
+```{r}
+RES2<-rbind(RES,very.loud)
+noise<-subset(RES2,Comments=="very loud period" | Comments == "datagap (12 hours)")
+table(noise$Location,noise$Deployment)
+
+write.csv(noise,file="G:/Shared drives/WaddenSea fish sounds/Lauwersoog logs for publication/LAUW_allsites_05-08_noisyperiods.csv")
+```

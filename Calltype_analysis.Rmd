@@ -1,0 +1,47 @@
+---
+title: "Calltype analysis"
+author: "Annebelle"
+date: "2025-02-12"
+output: html_document
+---
+
+```{r}
+setwd('G:/My Drive/Wadden fish sounds/Data analysis/Pulse rate results/')
+
+file<-list.files(path="G:/My Drive/Wadden fish sounds/Data analysis/Pulse rate results/")
+filetype<-"pulses"
+file.list<-grepl(filetype,file,fixed=TRUE)
+file.WC<-file[file.list]
+
+RES<-NULL
+for(n in 1:length(file.WC)){
+  setwd("G:/My Drive/Wadden fish sounds/Data analysis/Pulse rate results/")
+  dat<-read.csv(file.WC[n])
+  RES<-rbind(RES,dat)
+}
+```
+
+```{r}
+head(RES)
+
+RESsub<-subset(RES,mean_pulsetime>0)
+
+#subsetting to similar calltypes so it's easier to see the differences
+grunts<-subset(RESsub,calltype == "Gr" | calltype == "GrBz" | calltype == "fish grunt 2" | calltype=="higher fish grunt" | calltype == "Grw")
+others<-subset(RESsub,calltype!="Gr" & calltype!="GrBz" & calltype!="fish grunt 2" & calltype!="higher fish grunt" & calltype!="Grw")
+
+require(ggplot2)
+ggplot(data=grunts,aes(x=mean_pulserate))+geom_histogram(aes(fill=calltype),position='dodge')+ggtitle("Pulserate")
+
+ggplot(data=grunts,aes(x=mean_pulsetime))+geom_histogram(aes(fill=calltype),position='dodge')+ggtitle("Pulse time")
+
+ggplot(data=grunts,aes(x=mean_pulserate,y=maxFrequency))+geom_point(aes(colour=calltype))
+ggplot(data=grunts,aes(x=maxFrequency))+geom_histogram(aes(fill=calltype),position="dodge")+ggtitle("Maximum frequency")+xlim(0,500)
+
+ggplot(data=others,aes(x=mean_pulserate))+geom_histogram(aes(fill=calltype),position='dodge')+ggtitle("Pulserate")
+
+ggplot(data=others,aes(x=mean_pulsetime))+geom_histogram(aes(fill=calltype),position='dodge')+ggtitle("Pulse time")
+
+ggplot(data=others,aes(x=mean_pulserate,y=maxFrequency))+geom_point(aes(colour=calltype))
+ggplot(data=others,aes(x=maxFrequency))+geom_histogram(aes(fill=calltype),position="dodge")+ggtitle("Maximum frequency")+xlim(0,500)
+```
